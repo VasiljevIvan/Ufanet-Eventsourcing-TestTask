@@ -1,13 +1,13 @@
-package ru.vasiljev.UfanetTestTask.util;
+package ru.vasiljev.UfanetTestTask.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.vasiljev.UfanetTestTask.dto.OrderEventDTO;
 import ru.vasiljev.UfanetTestTask.models.Customer;
 import ru.vasiljev.UfanetTestTask.models.Employee;
-import ru.vasiljev.UfanetTestTask.models.OrderId;
 import ru.vasiljev.UfanetTestTask.models.Product;
 import ru.vasiljev.UfanetTestTask.models.events.*;
+import ru.vasiljev.UfanetTestTask.repositories.OrderEventsRepository;
 import ru.vasiljev.UfanetTestTask.repositories.ProductsRepository;
 
 import java.time.LocalDateTime;
@@ -17,9 +17,11 @@ import static ru.vasiljev.UfanetTestTask.Constants.*;
 @Service
 @Transactional(readOnly = true)
 public class OrderEventCreator {
+    private final OrderEventsRepository orderEventsRepository;
     private final ProductsRepository productsRepository;
 
-    public OrderEventCreator(ProductsRepository productsRepository) {
+    public OrderEventCreator(OrderEventsRepository orderEventsRepository, ProductsRepository productsRepository) {
+        this.orderEventsRepository = orderEventsRepository;
         this.productsRepository = productsRepository;
     }
 
@@ -27,14 +29,13 @@ public class OrderEventCreator {
     public RegisterOrderEvent createRegisterOrderEvent(OrderEventDTO orderEventDTO) {
         checkRequiredRegisterParams(orderEventDTO);
         LocalDateTime createdAt = LocalDateTime.now();
-        OrderId orderId = new OrderId();
+        int orderId = orderEventsRepository.nextOrderId();
         Employee employee = new Employee(orderEventDTO.getEmployeeId());
         Customer customer = new Customer(orderEventDTO.getCustomerId());
         Product product = productsRepository.findById(orderEventDTO.getProductId())
                 .orElseThrow(()->(new RuntimeException("Продукт с таким id не найден")));
         LocalDateTime expectedCompletionTime = calculateExpectedCompletionTime(createdAt, product);
         return RegisterOrderEvent.builder()
-                .eventType(REGISTER)
                 .createdAt(createdAt)
                 .orderId(orderId)
                 .employee(employee)
@@ -50,9 +51,8 @@ public class OrderEventCreator {
         if (cancelReason == null)
             throw new RuntimeException("Не указан обязательный параметр");
         Employee employee = new Employee(orderEventDTO.getEmployeeId());
-        OrderId orderId = new OrderId(orderEventDTO.getOrderId());
+        int orderId = orderEventDTO.getOrderId();
         return CancelOrderEvent.builder()
-                .eventType(CANCEL)
                 .orderId(orderId)
                 .employee(employee)
                 .cancelReason(orderEventDTO.getCancelReason())
@@ -62,9 +62,8 @@ public class OrderEventCreator {
     public TakenToWorkOrderEvent createTakenToWorkOrderEvent(OrderEventDTO orderEventDTO) {
         checkRequiredParameters(orderEventDTO);
         Employee employee = new Employee(orderEventDTO.getEmployeeId());
-        OrderId orderId = new OrderId(orderEventDTO.getOrderId());
+        int orderId = orderEventDTO.getOrderId();
         return TakenToWorkOrderEvent.builder()
-                .eventType(TAKEN_TO_WORK)
                 .orderId(orderId)
                 .employee(employee)
                 .createdAt(LocalDateTime.now()).build();
@@ -73,9 +72,8 @@ public class OrderEventCreator {
     public ReadyOrderEvent createReadyOrderEvent(OrderEventDTO orderEventDTO) {
         checkRequiredParameters(orderEventDTO);
         Employee employee = new Employee(orderEventDTO.getEmployeeId());
-        OrderId orderId = new OrderId(orderEventDTO.getOrderId());
+        int orderId = orderEventDTO.getOrderId();
         return ReadyOrderEvent.builder()
-                .eventType(READY)
                 .orderId(orderId)
                 .employee(employee)
                 .createdAt(LocalDateTime.now()).build();
@@ -84,9 +82,8 @@ public class OrderEventCreator {
     public IssuedOrderEvent createIssuedOrderEvent(OrderEventDTO orderEventDTO) {
         checkRequiredParameters(orderEventDTO);
         Employee employee = new Employee(orderEventDTO.getEmployeeId());
-        OrderId orderId = new OrderId(orderEventDTO.getOrderId());
+        int orderId = orderEventDTO.getOrderId();
         return IssuedOrderEvent.builder()
-                .eventType(ISSUED)
                 .orderId(orderId)
                 .employee(employee)
                 .createdAt(LocalDateTime.now()).build();

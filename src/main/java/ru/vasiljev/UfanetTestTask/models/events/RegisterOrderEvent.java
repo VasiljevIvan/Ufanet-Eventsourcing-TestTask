@@ -3,7 +3,6 @@ package ru.vasiljev.UfanetTestTask.models.events;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.Immutable;
 import ru.vasiljev.UfanetTestTask.models.Customer;
 import ru.vasiljev.UfanetTestTask.models.Product;
 
